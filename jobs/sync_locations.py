@@ -3,30 +3,9 @@
 2024 Greg Mueller.
 """
 
-
-# import sys
-# import time
-
-# from django.conf import settings
-# from django.db import transaction
-
-# from nautobot.apps.jobs import (
-#     DryRunVar,
-
-#     IntegerVar,
-#     Job,
-#     JobButtonReceiver,
-#     JobHookReceiver,
-#     JSONVar,
-#     register_jobs,
-#     StringVar,
-# )
-
-from nautobot.extras.jobs import FileVar, Job
-
+from nautobot.apps.jobs import FileVar, Job, register_jobs
 
 from nautobot.dcim.models import Device, Location, LocationType
-# from nautobot.extras.choices import ObjectChangeActionChoices
 
 name = "Wayne Enterprises: Custom Jobs"
 
@@ -105,5 +84,14 @@ class ImportLocationsFromCSVJob(Job):
         self.logger.info(f"{repr(args)=}")
         self.logger.info(f"{repr(kwargs)=}")
 
+    # def run(self, data, commit):
+        # self.data = data
+
+    # def get_csv_data(self, data):
+
+    # def get_states(values):
+
+
 
 jobs = ["ImportLocationsFromCSVJob"]
+register_jobs(*jobs)
