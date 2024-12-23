@@ -74,15 +74,17 @@ STATE_ABBREVIATION_TO_FULL_NAME_MAP = {
 class ImportLocationsFromCSVJob(Job):
     """Job that imports Location data from a CSV file."""
 
-    input_file = FileVar(description="CSV file containing Locations data")
+    # input_file = FileVar(description="CSV file containing Locations data")
 
     class Meta:
         name = "Import locations from CSV file."
         description = "Job that keeps the Locations table up to date."
 
     def run(self, *args, **kwargs):
-        self.logger.info(f"{repr(args)=}")
-        self.logger.info(f"{repr(kwargs)=}")
+        pass
+        # self.logger.info(f"{repr(args)=}")
+        # self.logger.info(f"{repr(args)=}")
+        # self.logger.info(f"{repr(kwargs)=}")
 
     # def run(self, data, commit):
         # self.data = data
