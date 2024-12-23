@@ -95,5 +95,5 @@ class ImportLocationsFromCSVJob(Job):
 
 
 
-jobs = ["ImportLocationsFromCSVJob"]
-# register_jobs(*jobs)
+jobs = [ImportLocationsFromCSVJob]
+register_jobs(*jobs)
