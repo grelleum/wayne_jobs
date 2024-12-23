@@ -12,7 +12,7 @@
 
 # from nautobot.apps.jobs import (
 #     DryRunVar,
-    
+
 #     IntegerVar,
 #     Job,
 #     JobButtonReceiver,
@@ -102,5 +102,8 @@ class ImportLocationsFromCSVJob(Job):
         description = "Job that keeps the Locations table up to date."
 
     def run(self, *args, **kwargs):
-        self.logger.info(f'{repr(args)=}')
-        self.logger.info(f'{repr(kwargs)=}')
+        self.logger.info(f"{repr(args)=}")
+        self.logger.info(f"{repr(kwargs)=}")
+
+
+jobs = ["ImportLocationsFromCSVJob"]
