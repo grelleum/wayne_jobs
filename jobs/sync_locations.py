@@ -3,6 +3,10 @@
 2024 Greg Mueller.
 """
 
+
+import csv
+from io import StringIO
+
 from nautobot.apps.jobs import FileVar, Job, register_jobs
 
 # from nautobot.dcim.models import Device, Location, LocationType
@@ -80,14 +84,16 @@ class ImportLocationsFromCSVJob(Job):
         name = "Import locations from CSV file."
         description = "Job that keeps the Locations table up to date."
 
-    def run(self, *args, **kwargs):
-        self.logger.info(f"{repr(args)=}")
-        self.logger.info(f"{repr(kwargs)=}")
+    def run(self, input_file):
+        records = self.get_csv_data(input_file)
+        self.logger.info(f"{repr(records)=}", records)
 
-    # def run(self, data, commit):
-        # self.data = data
+    def get_csv_data(self, input_file):
+        text = input_file.read().decode("utf-8")
+        csv_data = csv.DictReader(StringIO(text))
+        records = list(csv_data)
+        return records
 
-    # def get_csv_data(self, data):
 
     # def get_states(values):
 
