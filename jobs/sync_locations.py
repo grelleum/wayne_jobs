@@ -86,7 +86,7 @@ class ImportLocationsFromCSVJob(Job):
 
     def run(self, input_file):
         records = self.get_csv_data(input_file)
-        self.logger.info(f"{repr(records)=}", records)
+        self.logger.info(f"{repr(records)=}")
 
     def get_csv_data(self, input_file):
         text = input_file.read().decode("utf-8")
