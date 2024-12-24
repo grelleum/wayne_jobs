@@ -4,16 +4,15 @@
 """
 
 import csv
+from dataclasses import dataclass
+from itertools import chain
 from io import StringIO
 from typing import Optional
 
 from django.urls import reverse
-from diffsync import Adapter
-from nautobot.apps.jobs import FileVar, register_jobs
-from nautobot.dcim.models import Location
-from nautobot_ssot.contrib import NautobotAdapter, NautobotModel
-from nautobot_ssot.jobs.base import DataMapping, DataSource
-
+from nautobot.apps.models import Status
+from nautobot.apps.jobs import FileVar, Job, register_jobs
+from nautobot.dcim.models import Location, LocationType
 
 name = "Wayne Enterprises: Custom Jobs"
 
@@ -79,62 +78,32 @@ STATE_ABBREVIATION_TO_FULL_NAME_MAP = {
 }
 
 
-class LocationModel(NautobotModel):
-    """Shared data model representing a Location in either of the local or remote Nautobot instances."""
-
-    _model = Location
-    _modelname = "location"
-    _identifiers = ("name",)
-    _attributes = (
-        "location_type__name",
-        "status__name",
-        "parent__name",
-        "parent__location_type__name",
-        "description",
-    )
-
+@dataclass
+class LocationRecord:
     name: str
     location_type__name: str
-    status__name: str
-    parent__name: Optional[str] = None
-    parent__location_type__name: Optional[str] = None
-    description: str
+    parent__name: Optional[str]
+    parent__location_type__name: Optional[str]
 
 
-class NautobotLocal(NautobotAdapter):
-    """DiffSync adapter class for loading data from the local Nautobot instance."""
+class LocationsCSVImportJob(Job):
+    """Job that imports Location data from a CSV file."""
 
-    location = LocationModel
-    top_level = ["location"]
+    source_file = FileVar(description="CSV file containing Locations data")
 
+    class Meta:
+        """Metaclass attributes of LocationsCSVImportJob."""
 
-class NautobotRemote(Adapter):
-    """DiffSync adapter class for loading data from a CSV File."""
+        name = "Import locations from CSV file."
+        description = "Job that keeps the Locations table up to date."
 
-    location = LocationModel
-    top_level = ["location"]
-
-    def __init__(self, *args, source_file, job=None, **kwargs):
-        """Instantiate this class."""
-        super().__init__(*args, **kwargs)
-        self.job = job
+    def run(self, source_file):
+        """Execute job logic."""
         self.source_file = source_file
-
-    def load(self):
-        """Load data from the provided."""
         csv_records = self.get_csv_records(self.source_file)
         csv_records = self.translate_state_names(csv_records)
-        location_records = self.get_all_location_records(csv_records)
-        self.load_locations(location_records)
-
-    def load_locations(self, location_records):
-        """Load Locations data from the remote Nautobot instance."""
-        for location_record in location_records:
-            location = self.location(**location_record)
-            self.add(location)
-            self.job.logger.debug(
-                f"Loaded {location} Location from remote Nautobot instance"
-            )
+        location_records = self.iter_all_location_records(csv_records)
+        self.process_source_records(location_records)
 
     def get_csv_records(self, source_file):
         text = source_file.read().decode("utf-8")
@@ -154,22 +123,22 @@ class NautobotRemote(Adapter):
             "state": state_name,
         }
 
-    def get_all_location_records(self, records):
-        return [
-            *self.get_states(records),
-            *self.get_cities(records),
-            *self.get_location_sites(records),
-        ]
+    def iter_all_location_records(self, records):
+        yield from chain(
+            self.get_states(records),
+            self.get_cities(records),
+            self.get_location_sites(records),
+        )
 
     def get_states(self, records):
         state_names = set(r["state"] for r in records)
         state_records = [
-            {
-                "name": state_name,
-                "location_type__name": "State",
-                "status__name": "Active",
-                "description": f"The state of '{state_name}'.",
-            }
+            LocationRecord(
+                name=state_name,
+                location_type__name="State",
+                parent__name=None,
+                parent__location_type__name=None,
+            )
             for state_name in state_names
         ]
         return state_records
@@ -177,14 +146,12 @@ class NautobotRemote(Adapter):
     def get_cities(self, records):
         cities = set((r["city"], r["state"]) for r in records)
         city_records = [
-            {
-                "name": city_name,
-                "location_type__name": "City",
-                "status__name": "Active",
-                "parent__name": state_name,
-                "parent__location_type__name": "State",
-                "description": f"The city of '{city_name}'.",
-            }
+            LocationRecord(
+                name=city_name,
+                location_type__name="City",
+                parent__name=state_name,
+                parent__location_type__name="State",
+            )
             for city_name, state_name in cities
         ]
         return city_records
@@ -201,59 +168,39 @@ class NautobotRemote(Adapter):
             else:
                 self.logger.warn(f"'{site_name}' is not a Branch or Data Center")
                 continue
-            record = {
-                "name": site_name,
-                "location_type__name": location_type__name,
-                "status__name": "Active",
-                "parent__name": city_name,
-                "parent__location_type__name": "City",
-                "description": f"The {location_type__name} of '{site_name}'.",
-            }
+            record = LocationRecord(
+                name=site_name,
+                location_type__name=location_type__name,
+                parent__name=city_name,
+                parent__location_type__name="City",
+            )
             site_records.append(record)
-
         return site_records
 
+    def process_source_records(self, location_records):
+        active_status = Status.objects.get(name="Active")
+        for record in location_records:
+            location_type = LocationType.objects.filter(
+                name=record.location_type__name
+            ).first()
+            parent = self.get_parent(record)
+            obj, created = Location.objects.update_or_create(
+                name=record.name,
+                location_type=location_type,
+                defaults={
+                    "parent": parent,
+                    "status": active_status,
+                },
+            )
 
-class LocationsCSVDataSource(DataSource):
-    """Job that imports Location data from a CSV file."""
-
-    source_file = FileVar(description="CSV file containing Locations data")
-
-    class Meta:
-        """Metaclass attributes of LocationsCSVDataSource."""
-
-        name = "Import locations from CSV file."
-        description = "Job that keeps the Locations table up to date."
-        data_source = "Locations CSV File (remote)"
-
-    @classmethod
-    def data_mappings(cls):
-        """Map remote source data to local Nautobot models."""
-        return (
-            DataMapping(
-                "Location (remote)",
-                None,
-                "Location (local)",
-                reverse("dcim:location_list"),
-            ),
-        )
-
-    def run(self, *args, dryrun, memory_profiling, source_file, **kwargs):
-        self.source_file = source_file
-        self.dryrun = dryrun
-        self.memory_profiling = memory_profiling
-        super().run(dryrun, memory_profiling, *args, **kwargs)
-
-    def load_source_adapter(self):
-        """Method to instantiate and load the SOURCE adapter into `self.source_adapter`."""
-        self.source_adapter = NautobotRemote(source_file=self.source_file, job=self)
-        self.source_adapter.load()
-
-    def load_target_adapter(self):
-        """Method to instantiate and load the TARGET adapter into `self.target_adapter`."""
-        self.target_adapter = NautobotLocal(job=self, sync=self.sync)
-        self.target_adapter.load()
+    def get_parent(self, record):
+        if record.parent__name and record.parent__location_type__name:
+            results = Location.objects.filter(
+                name=record.parent__name,
+                location_type__name=record.parent__location_type__name,
+            )
+            return results.first()
 
 
-jobs = [LocationsCSVDataSource]
+jobs = [LocationsCSVImportJob]
 register_jobs(*jobs)
