@@ -149,7 +149,11 @@ class NautobotRemote(Adapter):
         ]
 
     def get_states(self, records):
-        states = set(r["state"] for r in records)
+        state_names = set(r["state"] for r in records)
+        state_names = [
+            STATE_ABBREVIATION_TO_FULL_NAME_MAP.get(name, name)
+            for name in state_names
+        ]
         state_records = [
             {
                 "name": state_name,
@@ -157,7 +161,7 @@ class NautobotRemote(Adapter):
                 "status__name": "Active",
                 "description": f"The state of '{state_name}'.",
             }
-            for state_name in states
+            for state_name in state_names
         ]
         return state_records
 
