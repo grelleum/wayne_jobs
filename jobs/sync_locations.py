@@ -178,28 +178,8 @@ class LocationsCSVImportJob(Job):
 
     def process_source_records(self, location_records):
         existing_locations = self.get_existing_locations()
-        # {
-        #   ('Ashburn', 'City'): ('Virginia', 'State'),
-        #   ('Ashburn-BR', 'Branch'): ('Ashburn', 'City'),
-        #   ...
-
-        # nocommit
-        self.logger.debug(
-            repr(existing_locations), extra={"object": existing_locations}
-        )
-        # nocommit
-
         active_status = Status.objects.get(name="Active")
         for record in location_records:
-            # nocommit
-            self.logger.debug(repr(record), extra={"object": record})  # nocommit
-            # LocationRecord(
-            #   name='Virginia',
-            #   location_type__name='State',
-            #   parent__name=None,
-            #   parent__location_type__name=None
-            # )
-
             identifiers = record.name, record.location_type__name
             if identifiers not in existing_locations:
                 self.create_new_location(record, active_status)
@@ -214,6 +194,8 @@ class LocationsCSVImportJob(Job):
             if record_attributes != existing_location_attributes:
                 self.update_existing_location(record, active_status)
 
+        # This code can be used to clean up locations that are not in the source file.
+        # Alternatively, we could just mark them as status="Decommissioned".
         self.delete_missing_locations(location_records, existing_locations)
 
     def get_existing_locations(self):
@@ -231,24 +213,14 @@ class LocationsCSVImportJob(Job):
 
     def create_new_location(self, record: LocationRecord, status: Status):
         """Create a Location model instance when none exists."""
-        self.logger.debug(f">>> {record=}")  # nocommit
-        self.logger.debug(f">>> {status=}")  # nocommit
-
         location_type = self.get_location_type(record)
         parent = self.get_parent(record)
-
-        self.logger.debug(f">>> {location_type=}")  # nocommit
-        self.logger.debug(f">>> {parent=}")  # nocommit
-
         obj = Location.objects.create(
             name=record.name,
             location_type=location_type,
             parent=parent,
             status=status,
         )
-
-        self.logger.debug(f">>> {obj.__dict__=}")  # nocommit
-
         self.logger.info(f"Created a new record for {obj}", extra={"object": obj})
         return obj
 
@@ -256,7 +228,6 @@ class LocationsCSVImportJob(Job):
         """Create a Location model instance when none exists."""
         location_type = self.get_location_type(record)
         parent = self.get_parent(record)
-
         obj = Location.objects.get(name=record.name, location_type=location_type)
         obj.parent = parent
         obj.status = status
@@ -265,6 +236,7 @@ class LocationsCSVImportJob(Job):
         return obj
 
     def get_parent(self, record):
+        """Return a Parent Location object matching the record's parent attributes."""
         if record.parent__name and record.parent__location_type__name:
             results = Location.objects.filter(
                 name=record.parent__name,
@@ -273,11 +245,15 @@ class LocationsCSVImportJob(Job):
             return results.first()
 
     def get_location_type(self, record):
+        """Return a LocationType object matching the record.location_type__name."""
         results = LocationType.objects.filter(name=record.location_type__name)
         return results.first()
 
     def delete_missing_locations(self, location_records, existing_locations):
-        """Find existing locations that are not in the source and remove those."""
+        """Remove existing locations that are not in the source file.
+
+        Alternatively, we could just mark them as status="Decommissioned".
+        """
         self.logger.debug("Location Delete is Not Implemented")
 
 
