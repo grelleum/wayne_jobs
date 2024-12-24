@@ -129,6 +129,7 @@ class NautobotRemote(Adapter):
     def load_locations(self, location_records):
         """Load Locations data from the remote Nautobot instance."""
         for location_record in location_records:
+            self.job.logger.debug(f"Location record: {location_record}")    # nocommit
             location = self.location(**location_record)
             self.add(location)
             self.job.logger.debug(
@@ -150,10 +151,10 @@ class NautobotRemote(Adapter):
 
     def get_states(self, records):
         state_names = set(r["state"] for r in records)
-        state_names = [
+        state_names = set(
             STATE_ABBREVIATION_TO_FULL_NAME_MAP.get(name, name)
             for name in state_names
-        ]
+        )
         state_records = [
             {
                 "name": state_name,
