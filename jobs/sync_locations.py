@@ -234,6 +234,7 @@ class LocationsCSVImportJob(Job):
             parent=parent,
             status=status,
         )
+        self.logger.debug(f"{obj.__dict__=}")
         self.logger.info(f"Created a new record for {obj}", extra={"object": obj})
         return obj
 
