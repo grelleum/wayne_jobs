@@ -226,15 +226,24 @@ class LocationsCSVImportJob(Job):
 
     def create_new_location(self, record: LocationRecord, status: Status):
         """Create a Location model instance when none exists."""
+        self.logger.debug(f">>> {record=}")  # nocommit
+        self.logger.debug(f">>> {status=}")  # nocommit
+
         location_type = self.get_location_type(record)
         parent = self.get_parent(record)
+
+        self.logger.debug(f">>> {location_type=}")  # nocommit
+        self.logger.debug(f">>> {parent=}")  # nocommit
+
         obj = Location.objects.create(
-            name=name,
+            name=record.name,
             location_type=location_type,
             parent=parent,
             status=status,
         )
-        self.logger.debug(f"{obj.__dict__=}")
+
+        self.logger.debug(f">>> {obj.__dict__=}")  # nocommit
+
         self.logger.info(f"Created a new record for {obj}", extra={"object": obj})
         return obj
 
@@ -243,7 +252,7 @@ class LocationsCSVImportJob(Job):
         location_type = self.get_location_type(record)
         parent = self.get_parent(record)
 
-        obj = Location.objects.get(name=name, location_type=location_type)
+        obj = Location.objects.get(name=record.name, location_type=location_type)
         obj.parent = parent
         obj.status = status
         obj.validated_save()
