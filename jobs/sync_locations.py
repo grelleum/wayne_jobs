@@ -9,10 +9,9 @@ from itertools import chain
 from io import StringIO
 from typing import Optional
 
-from django.urls import reverse
-from nautobot.apps.models import Status
 from nautobot.apps.jobs import FileVar, Job, register_jobs
 from nautobot.dcim.models import Location, LocationType
+from nautobot.extras.models import Status
 
 name = "Wayne Enterprises: Custom Jobs"
 
