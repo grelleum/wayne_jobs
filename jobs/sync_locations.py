@@ -143,10 +143,17 @@ class NautobotRemote(Adapter):
         records = list(csv_data)
         return records
 
-    def translate_state_names(self, records):
-        for record in records:
-            self.job.logger.debug(f"source record: {record}")    # nocommit
-        return records
+    def translate_state_names(self, csv_records):
+        return [self.fix_state_name_in_source_record(r) for r in csv_records]
+
+    def fix_state_name_in_source_record(self, record):
+        state_name = record["state"]
+        state_name = STATE_ABBREVIATION_TO_FULL_NAME_MAP.get(state_name, state_name)
+        return {
+            'name': record["name"],
+            'city': record["city"],
+            'state': state_name,
+        }
 
     def get_all_location_records(self, records):
         return [
@@ -157,10 +164,6 @@ class NautobotRemote(Adapter):
 
     def get_states(self, records):
         state_names = set(r["state"] for r in records)
-        state_names = set(
-            STATE_ABBREVIATION_TO_FULL_NAME_MAP.get(name, name)
-            for name in state_names
-        )
         state_records = [
             {
                 "name": state_name,
