@@ -142,6 +142,11 @@ class NautobotRemote(Adapter):
         records = list(csv_data)
         return records
 
+    def translate_state_names(self, records):
+        for record in records:
+            self.job.logger.debug(f"source record: {record}")    # nocommit
+        return records
+
     def get_all_location_records(self, records):
         return [
             *self.get_states(records),
