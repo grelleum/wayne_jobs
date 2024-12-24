@@ -123,6 +123,7 @@ class NautobotRemote(Adapter):
     def load(self):
         """Load data from the provided."""
         csv_records = self.get_csv_records(self.source_file)
+        csv_records = self.translate_state_names(csv_records)
         location_records = self.get_all_location_records(csv_records)
         self.load_locations(location_records)
 
