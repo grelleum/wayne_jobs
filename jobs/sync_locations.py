@@ -178,31 +178,39 @@ class LocationsCSVImportJob(Job):
 
     def process_source_records(self, location_records):
         existing_locations = self.get_existing_locations()
+        # {
+        #   ('Ashburn', 'City'): ('Virginia', 'State'),
+        #   ('Ashburn-BR', 'Branch'): ('Ashburn', 'City'),
+        #   ...
+
+        # nocommit
         self.logger.debug(
             repr(existing_locations), extra={"object": existing_locations}
         )
+        # nocommit
 
         active_status = Status.objects.get(name="Active")
         for record in location_records:
-            self.logger.debug(repr(record), extra={"object": record})
-            location_type = LocationType.objects.filter(
-                name=record.location_type__name
-            ).first()
-            parent = self.get_parent(record)
-            obj, created = Location.objects.update_or_create(
-                name=record.name,
-                location_type=location_type,
-                defaults={
-                    "parent": parent,
-                    "status": active_status,
-                },
-            )
-            message = (
-                f"Created a new record for {obj}"
-                if created
-                else f"Object {obj} already exists."
-            )
-            self.logger.info(message, extra={"object": obj})
+            # nocommit
+            self.logger.debug(repr(record), extra={"object": record})  # nocommit
+            # LocationRecord(
+            #   name='Virginia',
+            #   location_type__name='State',
+            #   parent__name=None,
+            #   parent__location_type__name=None
+            # )
+
+            identifiers = record.name, record.location_type__name
+            if identifiers not in existing_locations:
+                self.create_new_location(record, active_status)
+                continue
+
+            existing_location_parent = existing_locations[identifiers]
+            record_parent = record.parent__name, record.parent__location_type__name
+            if record_parent != existing_location_parent:
+                self.update_existing_location(record, active_status)
+
+        self.delete_missing_locations(location_records, existing_locations)
 
     def get_existing_locations(self):
         locations = Location.objects.values_list(
@@ -216,6 +224,31 @@ class LocationsCSVImportJob(Job):
             for name, location_type, parent, parent__location_type in locations
         }
 
+    def create_new_location(self, record: LocationRecord, status: Status):
+        """Create a Location model instance when none exists."""
+        location_type = self.get_location_type(record)
+        parent = self.get_parent(record)
+        obj = Location.objects.create(
+            name=name,
+            location_type=location_type,
+            parent=parent,
+            status=status,
+        )
+        self.logger.info(f"Created a new record for {obj}", extra={"object": obj})
+        return obj
+
+    def update_existing_location(self, record: LocationRecord, status: Status):
+        """Create a Location model instance when none exists."""
+        location_type = self.get_location_type(record)
+        parent = self.get_parent(record)
+
+        obj = Location.objects.get(name=name, location_type=location_type)
+        obj.parent = parent
+        obj.status = status
+        obj.validated_save()
+        self.logger.info(f"Updated location record for {obj}", extra={"object": obj})
+        return obj
+
     def get_parent(self, record):
         if record.parent__name and record.parent__location_type__name:
             results = Location.objects.filter(
@@ -223,6 +256,14 @@ class LocationsCSVImportJob(Job):
                 location_type__name=record.parent__location_type__name,
             )
             return results.first()
+
+    def get_location_type(self, record):
+        results = LocationType.objects.filter(name=record.location_type__name)
+        return results.first()
+
+    def delete_missing_locations(self, location_records, existing_locations):
+        """Find existing locations that are not in the source and remove those."""
+        self.logger.debug("Location Delete is Not Implemented")
 
 
 jobs = [LocationsCSVImportJob]
