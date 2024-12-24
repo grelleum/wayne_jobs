@@ -177,6 +177,11 @@ class LocationsCSVImportJob(Job):
         return site_records
 
     def process_source_records(self, location_records):
+        # Make idempotent
+        # Make idempotent
+        # pull in existing objects here and check before updating.
+        # Make idempotent
+        # Make idempotent
         active_status = Status.objects.get(name="Active")
         for record in location_records:
             location_type = LocationType.objects.filter(
@@ -191,6 +196,11 @@ class LocationsCSVImportJob(Job):
                     "status": active_status,
                 },
             )
+            if created:
+                self.logger.info(f"Created a new record for {obj}")
+            else:
+                self.logger.info(f"Object {obj} already exists.")
+
 
     def get_parent(self, record):
         if record.parent__name and record.parent__location_type__name:
