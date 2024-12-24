@@ -178,10 +178,13 @@ class LocationsCSVImportJob(Job):
 
     def process_source_records(self, location_records):
         existing_locations = self.get_existing_locations()
-        self.logger.info(repr(existing_locations), extra={"object": existing_locations})
+        self.logger.debug(
+            repr(existing_locations), extra={"object": existing_locations}
+        )
 
         active_status = Status.objects.get(name="Active")
         for record in location_records:
+            self.logger.debug(repr(record), extra={"object": record})
             location_type = LocationType.objects.filter(
                 name=record.location_type__name
             ).first()
