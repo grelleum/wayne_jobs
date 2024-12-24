@@ -7,7 +7,9 @@
 import csv
 from io import StringIO
 
-from nautobot.apps.jobs import FileVar, Job, register_jobs
+from django.urls import reverse
+
+from nautobot.apps.jobs import FileVar, register_jobs
 from nautobot.dcim.models import Location, LocationType
 
 
@@ -19,7 +21,6 @@ from nautobot.dcim.models import Location, LocationType
 # from diffsync.exceptions import ObjectNotFound
 # from django.contrib.contenttypes.models import ContentType
 # from django.templatetags.static import static
-# from django.urls import reverse
 # from nautobot.dcim.models import Device, DeviceType, Interface, Location, LocationType, Manufacturer, Platform
 # from nautobot.extras.choices import SecretsGroupAccessTypeChoices, SecretsGroupSecretTypeChoices
 # from nautobot.extras.jobs import ObjectVar, StringVar
@@ -29,8 +30,8 @@ from nautobot.dcim.models import Location, LocationType
 # from nautobot.tenancy.models import Tenant
 
 from nautobot_ssot.contrib import NautobotAdapter, NautobotModel
-from nautobot_ssot.jobs.base import DataMapping, DataSource, DataTarget
-from nautobot_ssot.tests.contrib_base_classes import ContentTypeDict
+from nautobot_ssot.jobs.base import DataMapping, DataSource
+# from nautobot_ssot.tests.contrib_base_classes import ContentTypeDict
 
 
 
@@ -120,24 +121,54 @@ class LocationModel(NautobotModel):
     description: str
 
 
-class ImportLocationsFromCSVJob(Job):
+class NautobotLocal(NautobotAdapter):
+    """DiffSync adapter class for loading data from the local Nautobot instance."""
+
+    location = LocationModel
+    top_level = ["location"]
+
+
+
+class LocationsCSVDataSource(DataSource):
     """Job that imports Location data from a CSV file."""
 
-    input_file = FileVar(description="CSV file containing Locations data")
+    source_file = FileVar(description="CSV file containing Locations data")
+
 
     class Meta:
+        """Metaclass attributes of LocationsCSVDataSource."""
+
         name = "Import locations from CSV file."
         description = "Job that keeps the Locations table up to date."
+        data_source = "Locations CSV File (remote)"
 
-    def run(self, input_file):
-        records = self.get_csv_data(input_file)
+    @classmethod
+    def data_mappings(cls):
+        """Map remote source data to local Nautobot models."""
+        return (
+            DataMapping("Location (remote)", None, "Location (local)", reverse("dcim:location_list")),
+        )
+
+    def run(self, *args, source_file, **kwargs):
+        self.logger.info(f"{repr(args)=}")
+        self.logger.info(f"{repr(kwargs)=}")
+        records = self.get_csv_data(source_file)
         self.logger.info(f"{repr(records)=}")
+        source_data = self.get_source_data(records)
+        self.logger.info(f"{repr(source_data)=}")
 
-    def get_csv_data(self, input_file):
-        text = input_file.read().decode("utf-8")
+    def get_csv_data(self, source_file):
+        text = source_file.read().decode("utf-8")
         csv_data = csv.DictReader(StringIO(text))
         records = list(csv_data)
         return records
+
+    def get_source_data(self, records):
+        return [
+            *self.get_states(records),
+            *self.get_cities(records),
+            *self.get_location_sites(records),
+        ]
 
     def get_states(self, records):
         states = set(r["state"] for r in records)
@@ -146,9 +177,6 @@ class ImportLocationsFromCSVJob(Job):
                 "name": state_name,
                 "location_type__name": "State",
                 "status__name": "Active",
-                # "parent__name": None,
-                # "parent__location_type__name",
-                # "tenant__name",
                 "description": f"The state of '{state_name}'.",
             }
             for state_name in states
@@ -195,5 +223,70 @@ class ImportLocationsFromCSVJob(Job):
         return site_records        
 
 
-jobs = [ImportLocationsFromCSVJob]
+    # def run(  # pylint: disable=too-many-arguments, arguments-differ
+    #     self,
+    #     dryrun,
+    #     memory_profiling,
+    #     source,
+    #     source_url,
+    #     source_token,
+    #     *args,
+    #     **kwargs,
+    # ):
+    #     """Run sync."""
+    #     self.dryrun = dryrun
+    #     self.memory_profiling = memory_profiling
+    #     try:
+    #         if source:
+    #             self.logger.info(f"Using external integration '{source}'")
+    #             self.source_url = source.remote_url
+    #             if not source.secrets_group:
+    #                 self.logger.error(
+    #                     "%s is missing a SecretsGroup. You must specify a SecretsGroup to synchronize with this Nautobot instance.",
+    #                     source,
+    #                 )
+    #                 raise MissingSecretsGroupException(message="Missing SecretsGroup on specified ExternalIntegration.")
+    #             secrets_group = source.secrets_group
+    #             self.source_token = secrets_group.get_secret_value(
+    #                 access_type=SecretsGroupAccessTypeChoices.TYPE_HTTP,
+    #                 secret_type=SecretsGroupSecretTypeChoices.TYPE_TOKEN,
+    #             )
+    #         else:
+    #             self.source_url = source_url
+    #             self.source_token = source_token
+    #     except SecretError as error:
+    #         self.logger.error("Error setting up job: %s", error)
+    #         raise
+
+    #     super().run(dryrun, memory_profiling, *args, **kwargs)
+
+    # def load_source_adapter(self):
+    #     """Method to instantiate and load the SOURCE adapter into `self.source_adapter`."""
+    #     self.source_adapter = NautobotRemote(url=self.source_url, token=self.source_token, job=self)
+    #     self.source_adapter.load()
+
+    # def load_target_adapter(self):
+    #     """Method to instantiate and load the TARGET adapter into `self.target_adapter`."""
+    #     self.target_adapter = NautobotLocal(job=self, sync=self.sync)
+    #     self.target_adapter.load()
+
+    # def lookup_object(self, model_name, unique_id):
+    #     """Look up a Nautobot object based on the DiffSync model name and unique ID."""
+    #     if model_name == "prefix":
+    #         try:
+    #             return Prefix.objects.get(
+    #                 prefix=unique_id.split("__")[0], tenant__name=unique_id.split("__")[1] or None
+    #             )
+    #         except Prefix.DoesNotExist:
+    #             pass
+    #     elif model_name == "tenant":
+    #         try:
+    #             return Tenant.objects.get(name=unique_id)
+    #         except Tenant.DoesNotExist:
+    #             pass
+    #     return None
+
+
+
+jobs = [LocationsCSVDataSource]
 register_jobs(*jobs)
