@@ -196,11 +196,12 @@ class LocationsCSVImportJob(Job):
                     "status": active_status,
                 },
             )
-            if created:
-                self.logger.info(f"Created a new record for {obj}")
-            else:
-                self.logger.info(f"Object {obj} already exists.")
-
+            message = (
+                f"Created a new record for {obj}"
+                if created
+                else f"Object {obj} already exists."
+            )
+            self.logger.info(message, extra={"object": obj})
 
     def get_parent(self, record):
         if record.parent__name and record.parent__location_type__name:
