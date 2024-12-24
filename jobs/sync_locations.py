@@ -205,9 +205,13 @@ class LocationsCSVImportJob(Job):
                 self.create_new_location(record, active_status)
                 continue
 
-            existing_location_parent = existing_locations[identifiers]
-            record_parent = record.parent__name, record.parent__location_type__name
-            if record_parent != existing_location_parent:
+            existing_location_attributes = existing_locations[identifiers]
+            record_attributes = (
+                record.parent__name,
+                record.parent__location_type__name,
+                "Active",
+            )
+            if record_attributes != existing_location_attributes:
                 self.update_existing_location(record, active_status)
 
         self.delete_missing_locations(location_records, existing_locations)
@@ -218,10 +222,11 @@ class LocationsCSVImportJob(Job):
             "location_type__name",
             "parent__name",
             "parent__location_type__name",
+            "status__name",
         )
         return {
-            (name, location_type): (parent, parent__location_type)
-            for name, location_type, parent, parent__location_type in locations
+            (name, location_type): (parent, parent__location_type, status__name)
+            for name, location_type, parent, parent__location_type, status__name in locations
         }
 
     def create_new_location(self, record: LocationRecord, status: Status):
