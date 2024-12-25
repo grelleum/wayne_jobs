@@ -1,0 +1,8 @@
+name,ip_address_host,location_name,device_role_name,namespace,device_status_name,interface_status_name,ip_address_status_name,secrets_group_name,platform_name,set_mgmt_only,update_devices_without_primary_ip,location_parent_name,port,timeout
+vmx1,172.18.0.20,Ashburn-DC,Onboarding,Global,Active,Active,Active,NETWORK_DATA_POPULATION,juniper_junos,False,True,Ashburn,22,30
+vmx2,172.18.0.21,Ashburn-DC,Onboarding,Global,Active,Active,Active,NETWORK_DATA_POPULATION,juniper_junos,False,True,Ashburn,22,30
+vmx3,172.18.0.22,Ashburn-DC,Onboarding,Global,Active,Active,Active,NETWORK_DATA_POPULATION,juniper_junos,False,True,Ashburn,22,30
+eos-spine1,172.18.0.23,Ashburn-DC,Onboarding,Global,Active,Active,Active,NETWORK_DATA_POPULATION,arista_eos,False,True,Ashburn,22,30
+eos-spine2,172.18.0.24,Ashburn-DC,Onboarding,Global,Active,Active,Active,NETWORK_DATA_POPULATION,arista_eos,False,True,Ashburn,22,30
+eos-leaf1,172.18.0.25,Ashburn-DC,Onboarding,Global,Active,Active,Active,NETWORK_DATA_POPULATION,arista_eos,False,True,Ashburn,22,30
+eos-leaf2,172.18.0.26,Ashburn-DC,Onboarding,Global,Active,Active,Active,NETWORK_DATA_POPULATION,arista_eos,False,True,Ashburn,22,30

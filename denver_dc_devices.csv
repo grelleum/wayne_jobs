@@ -1,0 +1,6 @@
+name,ip_address_host,location_name,device_role_name,namespace,device_status_name,interface_status_name,ip_address_status_name,secrets_group_name,platform_name,set_mgmt_only,update_devices_without_primary_ip,location_parent_name,port,timeout
+csr1,172.18.0.10,Den-DC,Onboarding,Global,Active,Active,Active,NETWORK_DATA_POPULATION,cisco_xe,False,True,Denver,22,30
+csr2,172.18.0.11,Den-DC,Onboarding,Global,Active,Active,Active,NETWORK_DATA_POPULATION,cisco_xe,False,True,Denver,22,30
+csr3,172.18.0.12,Den-DC,Onboarding,Global,Active,Active,Active,NETWORK_DATA_POPULATION,cisco_xe,False,True,Denver,22,30
+nxos-spine1,172.18.0.13,Den-DC,Onboarding,Global,Active,Active,Active,NETWORK_DATA_POPULATION,cisco_nxos,False,True,Denver,22,30
+nxos-spine2,172.18.0.14,Den-DC,Onboarding,Global,Active,Active,Active,NETWORK_DATA_POPULATION,cisco_nxos,False,True,Denver,22,30

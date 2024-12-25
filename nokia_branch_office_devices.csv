@@ -1,0 +1,6 @@
+name,ip_address_host,location_name,device_role_name,namespace,device_status_name,interface_status_name,ip_address_status_name,secrets_group_name,platform_name,set_mgmt_only,update_devices_without_primary_ip,location_parent_name,port,timeout
+sd-srl1,172.18.0.27,SanDiego-BR,Onboarding,Global,Active,Active,Active,NETWORK_DATA_POPULATION,nokia_srl,False,True,San Diego,22,30
+den-srl1,172.18.0.28,Den-BR,Onboarding,Global,Active,Active,Active,NETWORK_DATA_POPULATION,nokia_srl,False,True,Denver,22,30
+ash-srl1,172.18.0.29,Ashburn-BR,Onboarding,Global,Active,Active,Active,NETWORK_DATA_POPULATION,nokia_srl,False,True,Ashburn,22,30
+new-srl1,172.18.0.30,Newark-BR,Onboarding,Global,Active,Active,Active,NETWORK_DATA_POPULATION,nokia_srl,False,True,Newark,22,30
+chi-srl1,172.18.0.31,Chicago-BR,Onboarding,Global,Active,Active,Active,NETWORK_DATA_POPULATION,nokia_srl,False,True,Chicago,22,30
