@@ -3,26 +3,26 @@ sync_devices:
   hostname:
     commands:
       - command: "show version | as json"
-        parser: "textfsm"
+        parser: "none"
         jpath: '"basic system info".Hostname'
   serial:
     commands:
       - command: "show version | as json"
-        parser: "textfsm"
+        parser: "none"
         jpath: '"basic system info"."Serial Number"'
   device_type:
     commands:
       - command: "show version | as json"
-        parser: "textfsm"
+        parser: "none"
         jpath: '"basic system info"."Chassis Type"'
   mgmt_interface:
     commands:
       - command: "show interface all | as json"
-        parser: "textfsm"
+        parser: "none"
         jpath: "interfaces[*].{name: name, match_ip: subinterfaces[*].address[?contains(prefix, `{{ obj }}`)]}[?match_ip].name|[0]"
   mask_length:
     commands:
       - command: "show interface all | as json"
-        parser: "textfsm"
+        parser: "none"
         jpath: "interfaces[*].subinterfaces[*].address[?contains(prefix, `{{ obj }}`)].prefix|[0]|[0]|[0]"
         post_processor: "{% set addr, mask = obj.split('/') %}{{ mask }}"
